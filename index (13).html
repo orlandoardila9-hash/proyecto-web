@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V8</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a855f7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a0a0a;color:white;font-family:sans-serif;padding:16px}h1{text-align:center}.card{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:16px}input,select,textarea{width:100%;background:#000;border:1px solid #333;color:white;padding:12px;border-radius:10px;margin:8px 0}button{width:100%;padding:14px;border:none;border-radius:12px;background:#a855f7;color:white;font-weight:900;font-size:16px;margin-top:8px}button:disabled{opacity:.5}img,video{width:100%;border-radius:12px;margin-top:12px;display:none}#preview{height:200px;object-fit:cover}.row{display:flex;gap:6px}.row button{flex:1;background:#333;font-size:13px;padding:10px}.row button.act{background:white;color:black}.small{font-size:12px;color:#888;text-align:center}label{font-size:13px;color:#ccc}.gal img,.gal video{width:48%;display:inline-block}.share{display:flex;gap:6px}.share button{flex:1;background:#222;font-size:12px;padding:10px}.config{font-size:11px;color:#555;text-align:right;cursor:pointer}.box{border:1px dashed #444;border-radius:12px;padding:10px;margin:8px 0}audio{width:100%;margin-top:12px;display:none}
+</style>
+</head>
+<body>
+<h1>✨ V8</h1>
+<div class="card">
+<p class="config" onclick="configurar()">⚙️ Configuración</p>
+<label>Foto de la persona</label>
+<input type="file" id="foto" accept="image/*">
+<img id="preview">
+<label>Voz para clonar (opcional)</label>
+<input type="file" id="voz" accept="audio/*,video/*">
+<div class="box">
+<label>🎵 PISTA / MÚSICA DE FONDO (sin copyright)</label>
+<input id="pistaYoutube" placeholder="Pega aquí el link de YouTube de la pista sin copyright">
+<label style="font-size:11px;color:#888">O sube tu pista en MP3:</label>
+<input type="file" id="pistaArchivo" accept="audio/*">
+<label style="font-size:11px;color:#888">Volumen de la música</label>
+<input type="range" id="volMusica" min="0" max="100" value="30">
+</div>
+<div class="row"><button id="bFoto" class="act" onclick="setModo('foto')">FOTO</button><button id="bVideo" onclick="setModo('video')">VIDEO</button><button id="bHablar" onclick="setModo('hablar')">HABLAR</button><button id="bCantar" onclick="setModo('cantar')">CANTAR</button></div>
+<textarea id="prompt" rows="2" placeholder="Describe lo que quieres... Ej: cantando, hablando, en la calle, en un video musical..."></textarea>
+<textarea id="letra" rows="3" placeholder="Escribe aquí la LETRA de la canción o lo que quieres que diga / cante..."></textarea>
+<label><input type="checkbox" id="mantener" checked style="width:auto"> No cambiar la persona, misma cara, misma ropa</label>
+<button id="btn" onclick="generar()">GENERAR</button>
+<p class="small" id="estado"></p>
+<img id="resFoto"><video id="resVideo" controls></video><audio id="resAudio" controls></audio>
+<div id="acciones" style="display:none">
+<button onclick="guardar()" style="background:#333">💾 GUARDAR EN MIS CREACIONES</button>
+<button onclick="descargar()" style="background:#16a34a">⬇️ GUARDAR EN ARCHIVOS DEL CELULAR</button>
+<div class="share">
+<button onclick="compartir('whatsapp')">WhatsApp</button>
+<button onclick="compartir('tiktok')">TikTok</button>
+<button onclick="compartir('instagram')">Instagram</button>
+<button onclick="compartir('facebook')">Facebook</button>
+</div>
+<button onclick="compartir('mas')" style="background:#222">📤 COMPARTIR EN OTRA APP</button>
+</div>
+<h3 style="font-size:14px">Mis creaciones guardadas</h3>
+<div class="gal" id="gal"></div>
+</div>
+<script>// @ts-nocheck
+  let modo='foto',ultimo='',ultimoTipo='foto';
+function getUrl(){return localStorage.getItem('v8_link')||''}
+function configurar(){let actual=getUrl();let nuevo=prompt('Pega tu link aquí (solo tú lo verás, queda escondido):',actual);if(nuevo!==null){localStorage.setItem('v8_link',nuevo.trim());alert('Link guardado, ya quedó oculto')}}
+if(!getUrl()){setTimeout(()=>{let l=prompt('Pega tu link aquí una sola vez, quedará oculto y no se volverá a ver:');if(l)localStorage.setItem('v8_link',l.trim())},500)}
+function setModo(m){modo=m;let mapa={foto:'bFoto',video:'bVideo',hablar:'bHablar',cantar:'bCantar'};Object.values(mapa).forEach(id=>document.getElementById(id).className='');document.getElementById(mapa[m]).className='act'}
+document.getElementById('foto').onchange=e=>{let r=new FileReader();r.onload=()=>{let p=document.getElementById('preview');p.src=r.result;p.style.display='block'};r.readAsDataURL(e.target.files[0])};
+function mostrarGaleria(){let g=JSON.parse(localStorage.getItem('v8_gal')||'[]');document.getElementById('gal').innerHTML=g.map(u=>{if(u.includes('.mp3')||u.includes('.wav')||u.includes('audio'))return `<audio src="${u}" controls style="display:block;width:100%"></audio>`;if(u.includes('.mp4')||u.includes('video'))return `<video src="${u}" controls></video>`;return `<img src="${u}">`}).join('')}
+mostrarGaleria();
+function guardar(){if(!ultimo)return alert('Primero genera algo');let g=JSON.parse(localStorage.getItem('v8_gal')||'[]');g.unshift(ultimo);localStorage.setItem('v8_gal',JSON.stringify(g));mostrarGaleria();alert('Guardado')}
+async function descargar(){if(!ultimo)return alert('Primero genera algo');try{let resp=await fetch(ultimo);let blob=await resp.blob();let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V8-'+Date.now()+(ultimoTipo=='foto'?'.jpg':ultimoTipo=='audio'?'.mp3':'.mp4');a.click();alert('Guardado en Descargas / Archivos')}catch(e){window.open(ultimo,'_blank')}}
+async function compartir(red){if(!ultimo)return alert('Primero genera algo');let texto='Mira lo que creé con V8 ✨ '+ultimo;if(red=='whatsapp')window.open('https://wa.me/?text='+encodeURIComponent(texto));else if(red=='facebook')window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(ultimo));else if(navigator.share){try{await navigator.share({title:'V8',text:'Mira lo que creé con V8',url:ultimo})}catch(e){}}else{window.open(ultimo,'_blank');alert('Copia el link para compartir en '+red)}}
+async function toBase64(f){return new Promise(res=>{let r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(f)})}
+async function generar(){
+let f=document.getElementById('foto').files[0];let url=getUrl();let prompt=document.getElementById('prompt').value;let letra=document.getElementById('letra').value;let vozFile=document.getElementById('voz').files[0];let pistaFile=document.getElementById('pistaArchivo').files[0];let pistaYoutube=document.getElementById('pistaYoutube').value.trim();let volMusica=document.getElementById('volMusica').value;
+if(!f)return alert('Sube una foto');if(!url){configurar();return}if(!prompt&&!letra)return alert('Escribe lo que quieres o la letra');
+document.getElementById('btn').disabled=true;document.getElementById('estado').innerText='Generando con pista...';
+let base64=await toBase64(f);let vozBase64=vozFile?await toBase64(vozFile):'';let pistaBase64=pistaFile?await toBase64(pistaFile):'';
+let mantener=document.getElementById('mantener').checked?'Misma persona, misma cara, mismo rostro, no cambies la identidad, no cambies la ropa. ':'';
+let modoFinal=modo=='foto'?'foto':'video';
+let promptFinal=mantener+prompt+'. '+(modo=='cantar'?'Cantando esta canción con esta letra sobre esta pista, moviendo los labios al ritmo: '+letra:modo=='hablar'?'Diciendo esto, hablando a cámara: '+letra:letra);
+try{
+let resp=await fetch(url.replace(/\/$/,'')+'/generar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fotoBase64:base64,vozBase64:vozBase64,pistaBase64:pistaBase64,pistaYoutube:pistaYoutube,volMusica:volMusica,prompt:promptFinal,letra:letra,modo:modoFinal,clonarVoz:!!vozFile})});
+let data=await resp.json();let res=data.resultado||data;let out=res.images?.[0]?.url||res.video?.url||res.output?.[0]||res.audio?.url||data.audio_url||res.data?.video?.url||'';
+if(out){ultimo=out;ultimoTipo=modoFinal;if(out.includes('.mp3')||out.includes('.wav')||out.includes('audio'))ultimoTipo='audio';document.getElementById('acciones').style.display='block';document.getElementById('resFoto').style.display='none';document.getElementById('resVideo').style.display='none';document.getElementById('resAudio').style.display='none';if(ultimoTipo=='foto'){let i=document.getElementById('resFoto');i.src=out;i.style.display='block'}else if(ultimoTipo=='audio'){let a=document.getElementById('resAudio');a.src=out;a.style.display='block'}else{let v=document.getElementById('resVideo');v.src=out;v.style.display='block'}document.getElementById('estado').innerText='Listo ✅ Voz + Pista mezcladas'}
+else{document.getElementById('estado').innerText='Error, revisa tu configuración'}
+}catch(e){document.getElementById('estado').innerText='Error: '+e.message}
+document.getElementById('btn').disabled=false;
+}
+</script>
+</body>
+</html>
